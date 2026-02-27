@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --font-space: 'Space Grotesk', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-space);
+  background: #0a0a0a;
+  color: #fff;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Table hover effects */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Gradient text helper */
+.gradient-text {
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
