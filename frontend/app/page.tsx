@@ -200,7 +200,8 @@ export default function Home() {
             </span>
           </div>
           
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 border-b border-gray-800">
@@ -255,6 +256,63 @@ export default function Home() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {data?.feeCampaigns.map((camp) => (
+              <a
+                key={camp.address}
+                href={camp.explorer}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block bg-gray-900/50 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <p className="font-semibold truncate">{camp.title}</p>
+                    <p className="text-xs text-gray-500">{camp.chainName} • @{camp.creator ?? 'unknown'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-green-400">{formatUsd(camp.revenueUsd ?? 0)}</p>
+                    <p className="text-xs text-gray-500">{camp.remainDays != null ? `${Math.ceil(camp.remainDays)}d left` : ''}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="bg-gray-800/50 rounded-lg py-2">
+                    <p className="text-xs text-gray-500">Wallets</p>
+                    <p className="font-mono font-semibold">{camp.participants}</p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg py-2">
+                    <p className="text-xs text-gray-500">Score</p>
+                    <p className={`font-mono font-semibold ${(camp.avgScore ?? 0) < 1 ? 'text-red-400' : (camp.avgScore ?? 0) < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                      {camp.avgScore?.toFixed(1) ?? '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg py-2">
+                    <p className="text-xs text-gray-500">Proj.</p>
+                    <p className="font-mono font-semibold text-blue-400 text-xs">
+                      {camp.projectedRevenue ? formatUsd(camp.projectedRevenue) : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg py-2">
+                    <p className="text-xs text-gray-500">Prize</p>
+                    <p className="font-mono font-semibold text-gray-400 text-xs truncate px-1">
+                      {formatPrize(camp.prize)}
+                    </p>
+                  </div>
+                </div>
+                {camp.issues && camp.issues.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {camp.issues.map((issue, i) => (
+                      <span key={i} className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
+                        {issue}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
         </section>
 
         {/* Free Campaigns */}
@@ -268,7 +326,8 @@ export default function Home() {
               </span>
             </div>
             
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 border-b border-gray-800">
@@ -305,6 +364,46 @@ export default function Home() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {data?.freeCampaigns.map((camp) => (
+                <div
+                  key={camp.address}
+                  className="bg-gray-900/50 border border-gray-800 rounded-xl p-4"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 min-w-0 pr-3">
+                      <p className="font-semibold truncate">{camp.title}</p>
+                      <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-400">{formatPrize(camp.prize)}</p>
+                      <p className="text-xs text-gray-500">{camp.remainDays != null ? `${Math.ceil(camp.remainDays)}d left` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-gray-800/50 rounded-lg py-2">
+                      <p className="text-xs text-gray-500">Users</p>
+                      <p className="font-mono font-semibold">{camp.users}</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg py-2">
+                      <p className="text-xs text-gray-500">Subs</p>
+                      <p className="font-mono font-semibold">
+                        <span className="text-green-400">{camp.approved}</span>
+                        {camp.rejected > 0 && <span className="text-red-400">/{camp.rejected}</span>}
+                      </p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg py-2">
+                      <p className="text-xs text-gray-500">Score</p>
+                      <p className={`font-mono font-semibold ${(camp.avgScore ?? 0) < 1 ? 'text-red-400' : (camp.avgScore ?? 0) < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        {camp.avgScore?.toFixed(1) ?? '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
