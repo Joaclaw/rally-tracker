@@ -13,10 +13,15 @@ interface Campaign {
   rejected: number;
   avgScore: number;
   remainDays: number;
+  revenueUsd: number | null;
+  participants: number | null;
+  failedTxs: number;
+  ghostWallets: number;
 }
 
 interface Data {
   timestamp: string;
+  cachedAt: string | null;
   ethPrice: number;
   campaigns: Campaign[];
   stats: {
@@ -24,8 +29,18 @@ interface Data {
     activeCampaigns: number;
     totalUsers: number;
     totalSubmissions: number;
+    totalRevenue: number;
+    totalParticipants: number;
+    totalFailedTxs: number;
+    ghostWallets: number;
   };
 }
+
+const formatUsd = (n: number | null) => {
+  if (n == null || n === 0) return '-';
+  if (n >= 1000) return `$${Math.round(n).toLocaleString()}`;
+  return `$${n.toFixed(2)}`;
+};
 
 export default function Home() {
   const [data, setData] = useState<Data | null>(null);
@@ -113,17 +128,17 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
+            <p className="text-xs text-green-500/80 uppercase tracking-wider">Revenue</p>
+            <p className="text-2xl font-bold text-green-400">{formatUsd(data?.stats.totalRevenue ?? 0)}</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
+            <p className="text-xs text-blue-500/80 uppercase tracking-wider">Wallets</p>
+            <p className="text-2xl font-bold text-blue-400">{data?.stats.totalParticipants || data?.stats.totalUsers}</p>
+          </div>
           <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-4">
             <p className="text-xs text-yellow-500/80 uppercase tracking-wider">Active</p>
             <p className="text-2xl font-bold text-yellow-400">{data?.stats.activeCampaigns}</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
-            <p className="text-xs text-blue-500/80 uppercase tracking-wider">Total Campaigns</p>
-            <p className="text-2xl font-bold text-blue-400">{data?.stats.totalCampaigns}</p>
-          </div>
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
-            <p className="text-xs text-green-500/80 uppercase tracking-wider">Users</p>
-            <p className="text-2xl font-bold text-green-400">{data?.stats.totalUsers.toLocaleString()}</p>
           </div>
           <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-4">
             <p className="text-xs text-purple-500/80 uppercase tracking-wider">Submissions</p>
@@ -131,16 +146,28 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Alerts */}
+        {((data?.stats.ghostWallets ?? 0) > 0 || (data?.stats.totalFailedTxs ?? 0) > 0) && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6 flex flex-wrap gap-3 text-sm">
+            {(data?.stats.ghostWallets ?? 0) > 0 && (
+              <span className="text-red-400">⚠️ {data?.stats.ghostWallets} ghost wallets</span>
+            )}
+            {(data?.stats.totalFailedTxs ?? 0) > 0 && (
+              <span className="text-red-400">⚠️ {data?.stats.totalFailedTxs} failed txs</span>
+            )}
+          </div>
+        )}
+
         {/* Campaigns Table - Desktop */}
         <div className="hidden md:block bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-400 border-b border-gray-800 bg-gray-900/50">
                 <th className="px-4 py-3 font-medium">Campaign</th>
-                <th className="px-4 py-3 font-medium text-right">Users</th>
+                <th className="px-4 py-3 font-medium text-right">Revenue</th>
+                <th className="px-4 py-3 font-medium text-right">Wallets</th>
                 <th className="px-4 py-3 font-medium text-right">Subs</th>
                 <th className="px-4 py-3 font-medium text-right">Score</th>
-                <th className="px-4 py-3 font-medium text-right">Prize</th>
                 <th className="px-4 py-3 font-medium text-right">Left</th>
               </tr>
             </thead>
@@ -148,10 +175,11 @@ export default function Home() {
               {data?.campaigns.map((camp, i) => (
                 <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium truncate max-w-[280px]">{camp.title}</p>
+                    <p className="font-medium truncate max-w-[240px]">{camp.title}</p>
                     <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{camp.users}</td>
+                  <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
+                  <td className="px-4 py-3 text-right font-mono">{camp.participants ?? camp.users}</td>
                   <td className="px-4 py-3 text-right font-mono">
                     <span className="text-green-400">{camp.approved}</span>
                     {camp.rejected > 0 && <span className="text-red-400 ml-1">/{camp.rejected}</span>}
@@ -161,7 +189,6 @@ export default function Home() {
                       {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-gray-400">{camp.prize ?? '-'}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-400">{camp.remainDays}d</td>
                 </tr>
               ))}
@@ -179,14 +206,14 @@ export default function Home() {
                   <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-400">{camp.prize ?? '-'}</p>
+                  <p className="text-lg font-bold text-green-400">{formatUsd(camp.revenueUsd)}</p>
                   <p className="text-xs text-gray-500">{camp.remainDays}d left</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-gray-800/50 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Users</p>
-                  <p className="font-mono font-semibold">{camp.users}</p>
+                  <p className="text-xs text-gray-500">Wallets</p>
+                  <p className="font-mono font-semibold">{camp.participants ?? camp.users}</p>
                 </div>
                 <div className="bg-gray-800/50 rounded-lg py-2">
                   <p className="text-xs text-gray-500">Subs</p>
