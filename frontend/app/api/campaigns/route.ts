@@ -112,6 +112,10 @@ export async function GET() {
 
         const remainDays = Math.max(0, (new Date(camp.endDate).getTime() - nowMs) / 86400000);
 
+        // Determine if Beta (Base chain with fees) or Alpha (GenLayer/RLP)
+        const isBeta = camp.distributionContractChainId === 8453 && camp.token?.symbol !== 'RLP';
+        const phase = isBeta ? 'beta' : 'alpha';
+
         return {
           title: camp.title,
           address: ic ?? camp.campaignContractAddress ?? '',
@@ -128,6 +132,9 @@ export async function GET() {
           failedTxs,
           failedUsd,
           ghostWallets,
+          phase,
+          chainId: camp.distributionContractChainId,
+          symbol: camp.token?.symbol,
         };
       })
     );

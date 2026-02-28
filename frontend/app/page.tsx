@@ -17,6 +17,9 @@ interface Campaign {
   participants: number | null;
   failedTxs: number;
   ghostWallets: number;
+  phase: 'alpha' | 'beta';
+  chainId: number;
+  symbol: string;
 }
 
 interface Data {
@@ -183,80 +186,182 @@ export default function Home() {
           </div>
         )}
 
-        {/* Campaigns Table - Desktop */}
-        <div className="hidden md:block bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-800 bg-gray-900/50">
-                <th className="px-4 py-3 font-medium">Campaign</th>
-                <th className="px-4 py-3 font-medium text-right">Revenue</th>
-                <th className="px-4 py-3 font-medium text-right">Wallets</th>
-                <th className="px-4 py-3 font-medium text-right">Subs</th>
-                <th className="px-4 py-3 font-medium text-right">Score</th>
-                <th className="px-4 py-3 font-medium text-right">Left</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.campaigns.map((camp, i) => (
-                <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium truncate max-w-[240px]">{camp.title}</p>
-                    <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
-                  <td className="px-4 py-3 text-right font-mono">{camp.participants ?? camp.users}</td>
-                  <td className="px-4 py-3 text-right font-mono">
-                    <span className="text-green-400">{camp.approved}</span>
-                    {camp.rejected > 0 && <span className="text-red-400 ml-1">/{camp.rejected}</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-mono ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
-                      {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-gray-400">{camp.remainDays}d</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Beta Campaigns (Fee) */}
+        {(() => {
+          const betaCampaigns = data?.campaigns.filter(c => c.phase === 'beta') ?? [];
+          const alphaCampaigns = data?.campaigns.filter(c => c.phase === 'alpha') ?? [];
+          
+          return (
+            <>
+              {/* Beta Section */}
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🔗</span>
+                  <h2 className="text-lg font-bold">Beta Campaigns</h2>
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Base • Fees</span>
+                </div>
+                
+                {/* Desktop Table */}
+                <div className="hidden md:block bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-400 border-b border-gray-800 bg-gray-900/50">
+                        <th className="px-4 py-3 font-medium">Campaign</th>
+                        <th className="px-4 py-3 font-medium text-right">Revenue</th>
+                        <th className="px-4 py-3 font-medium text-right">Wallets</th>
+                        <th className="px-4 py-3 font-medium text-right">Subs</th>
+                        <th className="px-4 py-3 font-medium text-right">Score</th>
+                        <th className="px-4 py-3 font-medium text-right">Prize</th>
+                        <th className="px-4 py-3 font-medium text-right">Left</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {betaCampaigns.map((camp, i) => (
+                        <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <p className="font-medium truncate max-w-[200px]">{camp.title}</p>
+                            <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
+                          <td className="px-4 py-3 text-right font-mono">{camp.participants ?? '-'}</td>
+                          <td className="px-4 py-3 text-right font-mono">
+                            <span className="text-green-400">{camp.approved}</span>
+                            {camp.rejected > 0 && <span className="text-red-400 ml-1">/{camp.rejected}</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`font-mono ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                              {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-xs text-gray-400">{camp.prize}</td>
+                          <td className="px-4 py-3 text-right font-mono text-gray-400">{camp.remainDays}d</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-        {/* Campaigns Cards - Mobile */}
-        <div className="md:hidden space-y-3">
-          {data?.campaigns.map((camp, i) => (
-            <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1 min-w-0 pr-3">
-                  <p className="font-semibold truncate">{camp.title}</p>
-                  <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-green-400">{formatUsd(camp.revenueUsd)}</p>
-                  <p className="text-xs text-gray-500">{camp.remainDays}d left</p>
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-3">
+                  {betaCampaigns.map((camp, i) => (
+                    <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <p className="font-semibold truncate">{camp.title}</p>
+                          <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'} • {camp.prize}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-400">{formatUsd(camp.revenueUsd)}</p>
+                          <p className="text-xs text-gray-500">{camp.remainDays}d left</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-gray-800/50 rounded-lg py-2">
+                          <p className="text-xs text-gray-500">Wallets</p>
+                          <p className="font-mono font-semibold">{camp.participants ?? '-'}</p>
+                        </div>
+                        <div className="bg-gray-800/50 rounded-lg py-2">
+                          <p className="text-xs text-gray-500">Subs</p>
+                          <p className="font-mono font-semibold text-green-400">{camp.approved}</p>
+                        </div>
+                        <div className="bg-gray-800/50 rounded-lg py-2">
+                          <p className="text-xs text-gray-500">Score</p>
+                          <p className={`font-mono font-semibold ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                            {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-gray-800/50 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Wallets</p>
-                  <p className="font-mono font-semibold">{camp.participants ?? camp.users}</p>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Subs</p>
-                  <p className="font-mono font-semibold">
-                    <span className="text-green-400">{camp.approved}</span>
-                    {camp.rejected > 0 && <span className="text-red-400">/{camp.rejected}</span>}
+
+              {/* Alpha Section */}
+              {alphaCampaigns.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">🎁</span>
+                    <h2 className="text-lg font-bold">Alpha Campaigns</h2>
+                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">GenLayer • RLP</span>
+                    <span className="text-xs text-gray-500">(no fees)</span>
+                  </div>
+                  
+                  {/* Desktop Table */}
+                  <div className="hidden md:block bg-gray-900/30 rounded-xl border border-purple-500/20 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-gray-800 bg-gray-900/50">
+                          <th className="px-4 py-3 font-medium">Campaign</th>
+                          <th className="px-4 py-3 font-medium text-right">Users</th>
+                          <th className="px-4 py-3 font-medium text-right">Subs</th>
+                          <th className="px-4 py-3 font-medium text-right">Score</th>
+                          <th className="px-4 py-3 font-medium text-right">Prize</th>
+                          <th className="px-4 py-3 font-medium text-right">Left</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {alphaCampaigns.map((camp, i) => (
+                          <tr key={i} className="border-b border-gray-800/50 hover:bg-purple-500/5 transition-colors">
+                            <td className="px-4 py-3">
+                              <p className="font-medium truncate max-w-[240px]">{camp.title}</p>
+                              <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono text-purple-400">{camp.users}</td>
+                            <td className="px-4 py-3 text-right font-mono">
+                              <span className="text-green-400">{camp.approved}</span>
+                              {camp.rejected > 0 && <span className="text-red-400 ml-1">/{camp.rejected}</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`font-mono ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                                {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-xs text-gray-400">{camp.prize}</td>
+                            <td className="px-4 py-3 text-right font-mono text-gray-400">{camp.remainDays}d</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden space-y-3">
+                    {alphaCampaigns.map((camp, i) => (
+                      <div key={i} className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1 min-w-0 pr-3">
+                            <p className="font-semibold truncate">{camp.title}</p>
+                            <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'} • {camp.prize}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-purple-400">{camp.users} users</p>
+                            <p className="text-xs text-gray-500">{camp.remainDays}d left</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div className="bg-gray-800/50 rounded-lg py-2">
+                            <p className="text-xs text-gray-500">Subs</p>
+                            <p className="font-mono font-semibold text-green-400">{camp.approved}</p>
+                          </div>
+                          <div className="bg-gray-800/50 rounded-lg py-2">
+                            <p className="text-xs text-gray-500">Score</p>
+                            <p className={`font-mono font-semibold ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                              {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Alpha campaigns run on GenLayer (chain 61899) — no on-chain fees tracked
                   </p>
                 </div>
-                <div className="bg-gray-800/50 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Score</p>
-                  <p className={`font-mono font-semibold ${camp.avgScore < 1 ? 'text-red-400' : camp.avgScore < 2 ? 'text-yellow-400' : 'text-green-400'}`}>
-                    {camp.avgScore > 0 ? camp.avgScore.toFixed(1) : '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              )}
+            </>
+          );
+        })()}
       </main>
 
       {/* Footer */}
