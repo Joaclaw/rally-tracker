@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/api/campaigns/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
