@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-28T10:40:40.476Z",
-  "ethPrice": 1864.21,
+  "timestamp": "2026-02-28T10:44:39.732Z",
+  "ethPrice": 1863.15,
   "feeCampaigns": [
     {
       "address": "0x3618a1ef4ecc8041655418042c7951ad7cdbdbb4",
@@ -10,16 +10,21 @@
       "participants": 122,
       "rallyUsers": 0,
       "revenueEth": 0.09297421738836464,
-      "revenueUsd": 173.32346579756324,
+      "revenueUsd": 173.2249131271316,
       "failedTxs": 7,
-      "failedUsd": 8.414092475607,
+      "failedUsd": 8.409308176614857,
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 122
+      "ghostWallets": 122,
+      "dailyRate": 172.60373744743666,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0xa631c00ed87ed042eedd8bc2b34edd2798e64699",
@@ -29,16 +34,21 @@
       "participants": 94,
       "rallyUsers": 0,
       "revenueEth": 0.09207458181531189,
-      "revenueUsd": 171.64635616592258,
+      "revenueUsd": 171.54875710919836,
       "failedTxs": 9,
-      "failedUsd": 11.038180087239946,
+      "failedUsd": 11.031903717682614,
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 94
+      "ghostWallets": 94,
+      "dailyRate": 188.9502410960693,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x28eda7a7e67da27d5e52f763ce9bfd6fdb31a745",
@@ -48,16 +58,21 @@
       "participants": 138,
       "rallyUsers": 0,
       "revenueEth": 0.09109743196438866,
-      "revenueUsd": 169.82474364233298,
+      "revenueUsd": 169.72818036445074,
       "failedTxs": 9,
-      "failedUsd": 10.839415731583047,
+      "failedUsd": 10.833252380525238,
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 138
+      "ghostWallets": 138,
+      "dailyRate": 156.3432093535816,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0xb4c98221395ebb07e86498b827fc2866d58d4b7d",
@@ -67,16 +82,21 @@
       "participants": 56,
       "rallyUsers": 54,
       "revenueEth": 0.03893215488789331,
-      "revenueUsd": 72.57771246355959,
+      "revenueUsd": 72.53644437937842,
       "failedTxs": 2,
-      "failedUsd": 2.4420242903503477,
+      "failedUsd": 2.440635741985211,
       "avgScore": 1.0585802469135803,
       "approved": 54,
       "rejected": 0,
+      "approvalRate": 0.9152542372881356,
       "prize": "1,000 USDC",
       "remainDays": 24,
       "isEnded": false,
-      "ghostWallets": 2
+      "ghostWallets": 2,
+      "dailyRate": 109.1211539102324,
+      "projectedRevenue": 2618.9076938455773,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x6134c8f8ba6d9dff558fa937daaab559543fde04",
@@ -86,16 +106,21 @@
       "participants": 3,
       "rallyUsers": 0,
       "revenueEth": 0.002484296382055222,
-      "revenueUsd": 4.631250158391166,
+      "revenueUsd": 4.628616804226187,
       "failedTxs": 0,
       "failedUsd": 0,
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 3
+      "ghostWallets": 3,
+      "dailyRate": 2.6008717772164425,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0xb071c021203849b19bb067300af36f57f6062671",
@@ -105,16 +130,21 @@
       "participants": 1,
       "rallyUsers": 1,
       "revenueEth": 0.000657271749817161,
-      "revenueUsd": 1.2252925687266498,
+      "revenueUsd": 1.2245958606718437,
       "failedTxs": 0,
       "failedUsd": 0,
       "avgScore": 0.5333333333333333,
       "approved": 1,
       "rejected": 0,
+      "approvalRate": 1,
       "prize": "450,000,000 ARGUE",
       "remainDays": 71,
       "isEnded": false,
-      "ghostWallets": 0
+      "ghostWallets": 0,
+      "dailyRate": 2.472258060734932,
+      "projectedRevenue": 178.00258037291508,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0xf3020fd6b86d98129fe1dd1a81943c736739c64a",
@@ -124,16 +154,21 @@
       "participants": 1,
       "rallyUsers": 0,
       "revenueEth": 0.000609720899043859,
-      "revenueUsd": 1.1366477972065525,
+      "revenueUsd": 1.136001493053566,
       "failedTxs": 0,
       "failedUsd": 0,
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 1
+      "ghostWallets": 1,
+      "dailyRate": 0.5981034124173807,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x882a9993c1f747fd6d38d15f2377a9a9706410e2",
@@ -149,10 +184,15 @@
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 0
+      "ghostWallets": 0,
+      "dailyRate": null,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x6388eede5c5affba5dfacc2ef8faa50a25259406",
@@ -168,10 +208,15 @@
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 0
+      "ghostWallets": 0,
+      "dailyRate": null,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x91abf60462b771330457abc14c8085ae5d2b1788",
@@ -187,10 +232,15 @@
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 0
+      "ghostWallets": 0,
+      "dailyRate": null,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     },
     {
       "address": "0x2f0271f07781b844ad10cf749fba7c5b1c442de7",
@@ -206,10 +256,15 @@
       "avgScore": 0,
       "approved": 0,
       "rejected": 0,
+      "approvalRate": null,
       "prize": null,
       "remainDays": null,
       "isEnded": null,
-      "ghostWallets": 0
+      "ghostWallets": 0,
+      "dailyRate": null,
+      "projectedRevenue": null,
+      "newParticipants": 0,
+      "newRevenueUsd": 0
     }
   ],
   "freeCampaigns": [
@@ -255,12 +310,17 @@
     }
   ],
   "stats": {
-    "totalRevenue": 594.3654685937028,
+    "totalRevenue": 594.0275091381106,
     "totalParticipants": 415,
+    "totalRallyUsers": 55,
     "totalFailedTxs": 27,
-    "totalFailedUsd": 32.73371258478034,
+    "totalFailedUsd": 32.715100016807924,
     "ghostWallets": 360,
     "onChainCampaigns": 12,
-    "rallyCampaigns": 117
+    "rallyCampaigns": 117,
+    "arr": 114155.48931679083,
+    "dailyRate": 312.75476525148173,
+    "earliestTs": 1772111333000,
+    "ageDays": 1.8993395949074074
   }
 }

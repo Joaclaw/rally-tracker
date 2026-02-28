@@ -144,8 +144,6 @@ export async function GET() {
     // Stats
     const totalUsers = campaigns.reduce((sum, c) => sum + c.users, 0);
     const totalSubmissions = campaigns.reduce((sum, c) => sum + c.submissions, 0);
-    const totalRevenue = cached?.stats?.totalRevenue ?? campaigns.reduce((sum, c) => sum + (c.revenueUsd ?? 0), 0);
-    const totalParticipants = cached?.stats?.totalParticipants ?? 0;
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),
@@ -157,10 +155,17 @@ export async function GET() {
         activeCampaigns: activeCampaigns.length,
         totalUsers,
         totalSubmissions,
-        totalRevenue,
-        totalParticipants,
+        // On-chain stats from cache
+        totalRevenue: cached?.stats?.totalRevenue ?? 0,
+        totalParticipants: cached?.stats?.totalParticipants ?? 0,
+        totalRallyUsers: cached?.stats?.totalRallyUsers ?? 0,
         totalFailedTxs: cached?.stats?.totalFailedTxs ?? 0,
+        totalFailedUsd: cached?.stats?.totalFailedUsd ?? 0,
         ghostWallets: cached?.stats?.ghostWallets ?? 0,
+        // ARR metrics
+        arr: cached?.stats?.arr ?? null,
+        dailyRate: cached?.stats?.dailyRate ?? null,
+        ageDays: cached?.stats?.ageDays ?? null,
       },
     });
   } catch (error: any) {

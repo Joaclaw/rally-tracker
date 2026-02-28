@@ -31,12 +31,17 @@ interface Data {
     totalSubmissions: number;
     totalRevenue: number;
     totalParticipants: number;
+    totalRallyUsers: number;
     totalFailedTxs: number;
+    totalFailedUsd: number;
     ghostWallets: number;
+    arr: number | null;
+    dailyRate: number | null;
+    ageDays: number | null;
   };
 }
 
-const formatUsd = (n: number | null) => {
+const formatUsd = (n: number | null | undefined) => {
   if (n == null || n === 0) return '-';
   if (n >= 1000) return `$${Math.round(n).toLocaleString()}`;
   return `$${n.toFixed(2)}`;
@@ -127,7 +132,7 @@ export default function Home() {
 
       <main className="max-w-6xl mx-auto px-4 py-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
             <p className="text-xs text-green-500/80 uppercase tracking-wider">Revenue</p>
             <p className="text-2xl font-bold text-green-400">{formatUsd(data?.stats.totalRevenue ?? 0)}</p>
@@ -137,12 +142,32 @@ export default function Home() {
             <p className="text-2xl font-bold text-blue-400">{data?.stats.totalParticipants || data?.stats.totalUsers}</p>
           </div>
           <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-4">
-            <p className="text-xs text-yellow-500/80 uppercase tracking-wider">Active</p>
-            <p className="text-2xl font-bold text-yellow-400">{data?.stats.activeCampaigns}</p>
+            <p className="text-xs text-yellow-500/80 uppercase tracking-wider">Est. ARR</p>
+            <p className="text-2xl font-bold text-yellow-400">{formatUsd(data?.stats.arr)}</p>
           </div>
           <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-4">
-            <p className="text-xs text-purple-500/80 uppercase tracking-wider">Submissions</p>
-            <p className="text-2xl font-bold text-purple-400">{data?.stats.totalSubmissions.toLocaleString()}</p>
+            <p className="text-xs text-purple-500/80 uppercase tracking-wider">Daily Rate</p>
+            <p className="text-2xl font-bold text-purple-400">{formatUsd(data?.stats.dailyRate)}/d</p>
+          </div>
+        </div>
+        
+        {/* Secondary stats row */}
+        <div className="grid grid-cols-4 gap-3 mb-6 text-center">
+          <div className="bg-gray-800/30 rounded-lg py-2">
+            <p className="text-lg font-semibold">{data?.stats.activeCampaigns}</p>
+            <p className="text-xs text-gray-500">Active</p>
+          </div>
+          <div className="bg-gray-800/30 rounded-lg py-2">
+            <p className="text-lg font-semibold">{data?.stats.totalRallyUsers || data?.stats.totalUsers}</p>
+            <p className="text-xs text-gray-500">Rally Users</p>
+          </div>
+          <div className="bg-gray-800/30 rounded-lg py-2">
+            <p className="text-lg font-semibold">{data?.stats.totalSubmissions.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">Submissions</p>
+          </div>
+          <div className="bg-gray-800/30 rounded-lg py-2">
+            <p className="text-lg font-semibold">{data?.stats.ageDays?.toFixed(1) ?? '-'}d</p>
+            <p className="text-xs text-gray-500">Age</p>
           </div>
         </div>
 
@@ -150,10 +175,10 @@ export default function Home() {
         {((data?.stats.ghostWallets ?? 0) > 0 || (data?.stats.totalFailedTxs ?? 0) > 0) && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6 flex flex-wrap gap-3 text-sm">
             {(data?.stats.ghostWallets ?? 0) > 0 && (
-              <span className="text-red-400">⚠️ {data?.stats.ghostWallets} ghost wallets</span>
+              <span className="text-red-400">⚠️ {data?.stats.ghostWallets} ghost wallets (paid, not in Rally)</span>
             )}
             {(data?.stats.totalFailedTxs ?? 0) > 0 && (
-              <span className="text-red-400">⚠️ {data?.stats.totalFailedTxs} failed txs</span>
+              <span className="text-red-400">⚠️ {data?.stats.totalFailedTxs} failed txs — {formatUsd(data?.stats.totalFailedUsd)} kept</span>
             )}
           </div>
         )}

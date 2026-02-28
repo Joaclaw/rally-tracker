@@ -172,7 +172,11 @@ async function main() {
 
   const feeCampaigns = [];
   const newChainState = { campaigns: {} };
-  let totalRevenue = 0, totalParticipants = 0, totalFailedTxs = 0, totalFailedUsd = 0, ghostWallets = 0;
+  let totalRevenue = 0, totalParticipants = 0, totalRallyUsers = 0;
+  let totalFailedTxs = 0, totalFailedUsd = 0, ghostWallets = 0;
+  let earliestTs = null;
+  const DAY_MS = 86400000;
+  const nowMs = Date.now();
 
   for (const camp of onChainCampaigns) {
     const ic = await getIntelligentContract(chain.apiBase, camp.address);
@@ -193,28 +197,47 @@ async function main() {
 
     const successUsd = oc.successEth * ethPrice;
     const failedUsd = oc.failedEth * ethPrice;
+    const startDate = meta?.startDate ? new Date(meta.startDate) : null;
     const endDate = meta?.endDate ? new Date(meta.endDate) : null;
-    const remainDays = endDate ? Math.max(0, (endDate.getTime() - Date.now()) / 86400000) : null;
+    const remainDays = endDate ? Math.max(0, (endDate.getTime() - nowMs) / DAY_MS) : null;
     const isEnded = endDate && endDate <= new Date();
+    const periods = meta?.campaignDurationPeriods ?? 1;
+    const periodDays = meta?.periodLengthDays ?? 0;
+    const totalDays = periods * periodDays;
 
     if (isEnded && oc.participants === 0) continue;
 
     const reward = meta?.campaignRewards?.[0];
     const prize = reward ? `${Number(reward.totalAmount).toLocaleString()} ${meta?.token?.symbol ?? ''}` : null;
 
+    // Calculate projections
+    const ageDays = oc.firstTs ? (nowMs - oc.firstTs) / DAY_MS : null;
+    const dailyRate = (ageDays && ageDays > 0.1 && successUsd > 0) ? successUsd / ageDays : null;
+    const projectedRevenue = (dailyRate && totalDays > 0) ? dailyRate * totalDays : null;
+    const approvalRate = (approved > 0 && oc.successTxs > 0) ? approved / oc.successTxs : null;
+
+    // Deltas vs last run
+    const prev = state.base?.campaigns?.[camp.address] ?? {};
+    const newParticipants = Math.max(0, oc.participants - (prev.participants ?? 0));
+    const prevSuccessEth = prev.successEth ?? 0;
+    const newRevenueEth = Math.max(0, oc.successEth - prevSuccessEth);
+    const newRevenueUsd = newRevenueEth * ethPrice;
+
     // Accumulate stats
     totalRevenue += successUsd;
     totalParticipants += oc.participants;
+    totalRallyUsers += rallyUsers;
     totalFailedTxs += oc.failedTxs;
     totalFailedUsd += failedUsd;
     const ghost = oc.participants - rallyUsers;
     if (ghost > 0) ghostWallets += ghost;
+    if (oc.firstTs && (!earliestTs || oc.firstTs < earliestTs)) earliestTs = oc.firstTs;
 
     newChainState.campaigns[camp.address] = { participants: oc.participants, successEth: oc.successEth };
 
     feeCampaigns.push({
       address: camp.address,
-      ic: ic ?? null,  // Store IC for matching with Rally API
+      ic: ic ?? null,
       title: meta?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
       creator: meta?.displayCreator?.xUsername ?? null,
       participants: oc.participants,
@@ -226,10 +249,17 @@ async function main() {
       avgScore,
       approved,
       rejected,
+      approvalRate,
       prize,
       remainDays: remainDays != null ? Math.ceil(remainDays) : null,
       isEnded,
       ghostWallets: ghost > 0 ? ghost : 0,
+      // Projections
+      dailyRate,
+      projectedRevenue,
+      // Deltas
+      newParticipants,
+      newRevenueUsd,
     });
   }
 
@@ -260,6 +290,16 @@ async function main() {
   const currentCampaignCount = Object.keys(newChainState.campaigns).length;
   const newCampaigns = currentCampaignCount - prevCampaignCount;
 
+  // Calculate ARR
+  let arr = null, dailyRateGlobal = null;
+  if (earliestTs && totalRevenue > 0) {
+    const ageDays = (nowMs - earliestTs) / DAY_MS;
+    if (ageDays >= 0.5) {
+      dailyRateGlobal = totalRevenue / ageDays;
+      arr = dailyRateGlobal * 365;
+    }
+  }
+
   // Output JSON for frontend
   const output = {
     timestamp: new Date().toISOString(),
@@ -269,11 +309,17 @@ async function main() {
     stats: {
       totalRevenue,
       totalParticipants,
+      totalRallyUsers,
       totalFailedTxs,
       totalFailedUsd,
       ghostWallets,
       onChainCampaigns: onChainCampaigns.length,
       rallyCampaigns: allRallyCampaigns.length,
+      // ARR metrics
+      arr,
+      dailyRate: dailyRateGlobal,
+      earliestTs,
+      ageDays: earliestTs ? (nowMs - earliestTs) / DAY_MS : null,
     },
   };
 
