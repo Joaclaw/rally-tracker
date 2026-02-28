@@ -120,7 +120,8 @@ async function discoverCampaigns(chain) {
 
 async function getCampaignOnChainStats(apiBase, campAddr) {
   try {
-    const txs = await getAllPages(`${apiBase}/addresses/${campAddr}/transactions`, 3);
+    // No page limit - need ALL transactions to calculate accurate revenue
+    const txs = await getAllPages(`${apiBase}/addresses/${campAddr}/transactions`, 20);
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
 
