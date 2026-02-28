@@ -85,35 +85,38 @@ async function fetchRallySubmissions(ic) {
 }
 
 async function discoverCampaigns(chain) {
-  const campaigns = [];
+  const campaignMap = new Map();
   for (const fac of chain.factories) {
     try {
       const logs = await getAllPages(`${chain.apiBase}/addresses/${fac}/logs`, 3);
       for (const log of logs) {
         if (CAMPAIGN_TOPICS.includes(log.topics?.[0])) {
           const addr = ('0x' + (log.topics[1] ?? '').slice(-40)).toLowerCase();
-          if (addr && addr !== '0x' + '0'.repeat(40)) campaigns.push({ address: addr });
+          if (addr && addr !== '0x' + '0'.repeat(40)) {
+            // Extract IC from data field (third 32-byte word)
+            let ic = null;
+            if (log.data && log.data.length >= 194) { // 0x + 192 chars
+              const icRaw = log.data.slice(2 + 128, 2 + 192); // word[2]
+              if (icRaw && icRaw !== '0'.repeat(64)) {
+                ic = ('0x' + icRaw.slice(-40)).toLowerCase();
+              }
+            }
+            // Only overwrite if we found IC (some events don't have it)
+            if (!campaignMap.has(addr) || (ic && !campaignMap.get(addr).ic)) {
+              campaignMap.set(addr, { address: addr, ic });
+            }
+          }
         }
       }
     } catch (e) {
       console.error(`Error fetching ${fac}:`, e.message);
     }
   }
-  return [...new Map(campaigns.map(c => [c.address, c])).values()];
+  return [...campaignMap.values()];
 }
 
-async function getIntelligentContract(apiBase, campAddr) {
-  try {
-    const logs = await getAllPages(`${apiBase}/addresses/${campAddr}/logs`, 2);
-    for (const log of logs) {
-      if (log.decoded?.method_call?.includes('AuthorizedSourceAdded')) {
-        const src = log.decoded.parameters?.find(p => p.name === 'sourceContract');
-        if (src) return (src.value ?? '').toLowerCase();
-      }
-    }
-  } catch {}
-  return null;
-}
+// IC is now extracted directly from factory CampaignCreated event data
+// No separate lookup needed
 
 async function getCampaignOnChainStats(apiBase, campAddr) {
   try {
@@ -179,7 +182,8 @@ async function main() {
   const nowMs = Date.now();
 
   for (const camp of onChainCampaigns) {
-    const ic = await getIntelligentContract(chain.apiBase, camp.address);
+    // IC is extracted from factory event data, no need for separate lookup
+    const ic = camp.ic;
     const meta = (ic && rallyByIC[ic]) ?? null;
     const oc = await getCampaignOnChainStats(chain.apiBase, camp.address);
 
