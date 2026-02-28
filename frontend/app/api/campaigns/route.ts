@@ -6,6 +6,18 @@ export const dynamic = 'force-dynamic';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+async function getEthPrice(): Promise<number> {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd', {
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await res.json();
+    return data.ethereum?.usd ?? 2500;
+  } catch {
+    return 2500;
+  }
+}
+
 async function fetchJson(url: string, timeout = 10000) {
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeout);
@@ -61,6 +73,7 @@ export async function GET() {
   try {
     const now = new Date();
     const nowMs = now.getTime();
+    const ethPrice = await getEthPrice();
 
     // Load cached on-chain data
     let cached: any = null;
@@ -167,6 +180,7 @@ export async function GET() {
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       cachedAt: cached?.timestamp ?? null,
+      ethPrice,
       campaigns,
       stats,
     });

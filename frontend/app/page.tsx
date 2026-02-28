@@ -118,7 +118,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm text-gray-400">ETH</p>
-              <p className="font-mono font-bold text-green-400">${data?.ethPrice.toLocaleString()}</p>
+              <p className="font-mono font-bold text-green-400">${data?.ethPrice?.toLocaleString() ?? '-'}</p>
             </div>
             <button
               onClick={fetchData}
@@ -165,7 +165,7 @@ export default function Home() {
             <p className="text-xs text-gray-500">Rally Users</p>
           </div>
           <div className="bg-gray-800/30 rounded-lg py-2">
-            <p className="text-lg font-semibold">{data?.stats.totalSubmissions.toLocaleString()}</p>
+            <p className="text-lg font-semibold">{data?.stats?.totalSubmissions?.toLocaleString() ?? '-'}</p>
             <p className="text-xs text-gray-500">Submissions</p>
           </div>
           <div className="bg-gray-800/30 rounded-lg py-2">
