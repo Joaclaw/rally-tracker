@@ -22,11 +22,18 @@ const CHAINS = {
     name: 'Base',
     apiBase: 'https://base.blockscout.com/api/v2',
     factories: [
-      '0xe62DC9DEA493d3d2072d154a877A0715C1CAe03D',
-      '0x6187CB90B868f9eD34cc9fd4B0B78e2e9cAb4248',
+      '0xe62DC9DEA493d3d2072d154a877A0715C1CAe03D',  // Factory 1
+      '0x6187CB90B868f9eD34cc9fd4B0B78e2e9cAb4248',  // Factory 2
+      '0x9dFF846FD91F5B8D45bFf9c6016483E3a7C72699',  // Factory 3 (new, IC not in event data)
     ],
     explorer: 'https://basescan.org',
   },
+};
+
+// Manual IC mapping for Factory 3 campaigns (IC not available in event data)
+// Format: campaignAddress -> IC address
+const FACTORY3_IC_MAP = {
+  '0x580bb20ac1b32ca6ad547a3cebb727df2cf4f5dd': '0x34c19f6725a684b3e298c711ea6b32a0b6093e9a', // BOTCHA
 };
 
 async function get(url, timeout = 20000) {
@@ -100,6 +107,11 @@ async function discoverCampaigns(chain) {
               if (icRaw && icRaw !== '0'.repeat(64)) {
                 ic = ('0x' + icRaw.slice(-40)).toLowerCase();
               }
+            }
+            // Fallback to manual mapping for Factory 3 campaigns
+            if (!ic && FACTORY3_IC_MAP[addr]) {
+              ic = FACTORY3_IC_MAP[addr];
+              console.log(`📍 Using manual IC mapping for ${addr.slice(0,10)}... -> ${ic.slice(0,10)}...`);
             }
             // Only overwrite if we found IC (some events don't have it)
             if (!campaignMap.has(addr) || (ic && !campaignMap.get(addr).ic)) {
