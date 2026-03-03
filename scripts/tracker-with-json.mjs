@@ -228,9 +228,25 @@ async function isContract(chain, addr) {
   }
 }
 
-async function getCampaignOnChainStats(chain, campAddr) {
+async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
   try {
     let txs = [];
+    
+    // For manual EOA campaigns on Base, use balance directly (can't trace incoming txs)
+    if (isManualEOA && chain.name === 'Base') {
+      const resp = await get(`${chain.apiBase}/addresses/${campAddr}`);
+      const balance = BigInt(resp.coin_balance ?? '0');
+      return {
+        participants: balance > 0n ? 1 : 0,
+        successTxs: 0,
+        failedTxs: 0,
+        successEth: Number(balance) / 1e18,
+        failedEth: 0,
+        firstTs: null,
+        isEOA: true,
+      };
+    }
+    
     if (chain.apiStyle === 'etherscan') {
       // zkSync: txlist doesn't show incoming txs properly, use balance API + internal txs
       const balResp = await get(`${chain.apiBase}/api?module=account&action=balance&address=${campAddr}`);
@@ -347,14 +363,25 @@ async function main() {
     const meta = (ic && rallyByIC[ic]) ?? null;
     const campChain = CHAINS[camp._chain] ?? CHAINS.base;
     
-    // Skip addresses that aren't contracts (e.g., CREATE2 counterfactual or zkSync interop)
-    const isContractAddr = await isContract(campChain, camp.address);
-    if (!isContractAddr) {
-      console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
-      continue;
+    // Skip addresses that aren't contracts, unless they're manual campaigns (e.g., EOA fee recipients)
+    const isManualCampaign = MANUAL_BASE_CAMPAIGNS.some(mc => mc.address.toLowerCase() === camp.address.toLowerCase());
+    let isManualEOA = false;
+    if (!isManualCampaign) {
+      const isContractAddr = await isContract(campChain, camp.address);
+      if (!isContractAddr) {
+        console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
+        continue;
+      }
+    } else {
+      // Check if manual campaign is an EOA
+      const isContractAddr = await isContract(campChain, camp.address);
+      isManualEOA = !isContractAddr;
+      if (isManualEOA) {
+        console.log(`📍 Manual EOA campaign: ${camp.address.slice(0,10)}... (using balance)`);
+      }
     }
     
-    const oc = await getCampaignOnChainStats(campChain, camp.address);
+    const oc = await getCampaignOnChainStats(campChain, camp.address, isManualEOA);
 
     let rallyUsers = 0, avgScore = 0, approved = 0, rejected = 0;
     if (ic && meta) {
