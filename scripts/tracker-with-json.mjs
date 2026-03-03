@@ -54,8 +54,20 @@ const FACTORY3_IC_MAP = {
 
 // Manual metadata for campaigns not in Rally API
 const MANUAL_CAMPAIGN_META = {
-  // Add manual titles/creators for on-chain only campaigns
+  '0x4653fa360f40073e56acffe31f552fba14adf8b4': {
+    title: 'zkSync Era Campaign',
+    creator: 'zkSync',
+  },
 };
+
+// Manual campaigns to track on Base (not discovered from factory logs)
+// Format: { address, ic } - address receives fees, ic is for Rally submissions
+const MANUAL_BASE_CAMPAIGNS = [
+  {
+    address: '0x4653fa360f40073e56acffe31f552fba14adf8b4',
+    ic: '0x30f07a5a536323a2cecd99fef84cf088dbaa1531',
+  },
+];
 
 async function get(url, timeout = 20000) {
   const res = await fetch(url, {
@@ -186,11 +198,35 @@ async function discoverCampaigns(chain) {
       console.error(`Error fetching ${fac}:`, e.message);
     }
   }
+  
+  // Add manual campaigns for this chain
+  if (chain.name === 'Base') {
+    for (const mc of MANUAL_BASE_CAMPAIGNS) {
+      const addr = mc.address.toLowerCase();
+      if (!campaignMap.has(addr)) {
+        campaignMap.set(addr, { address: addr, ic: mc.ic?.toLowerCase() ?? null });
+        console.log(`📌 Added manual campaign: ${addr.slice(0,10)}...`);
+      }
+    }
+  }
+  
   return [...campaignMap.values()];
 }
 
 // IC is now extracted directly from factory CampaignCreated event data
 // No separate lookup needed
+
+async function isContract(chain, addr) {
+  try {
+    // Check if address has contract code
+    await new Promise(r => setTimeout(r, 100)); // Rate limit
+    const resp = await get(`${chain.apiBase}/addresses/${addr}`);
+    return resp.is_contract === true;
+  } catch (e) {
+    console.log(`⚠️ isContract check failed for ${addr.slice(0,10)}...: ${e.message}`);
+    return true; // Assume contract on error (don't skip valid campaigns)
+  }
+}
 
 async function getCampaignOnChainStats(chain, campAddr) {
   try {
@@ -310,6 +346,14 @@ async function main() {
     const ic = camp.ic;
     const meta = (ic && rallyByIC[ic]) ?? null;
     const campChain = CHAINS[camp._chain] ?? CHAINS.base;
+    
+    // Skip addresses that aren't contracts (e.g., CREATE2 counterfactual or zkSync interop)
+    const isContractAddr = await isContract(campChain, camp.address);
+    if (!isContractAddr) {
+      console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
+      continue;
+    }
+    
     const oc = await getCampaignOnChainStats(campChain, camp.address);
 
     let rallyUsers = 0, avgScore = 0, approved = 0, rejected = 0;
