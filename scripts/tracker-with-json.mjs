@@ -50,6 +50,14 @@ const FACTORY3_IC_MAP = {
   '0x580bb20ac1b32ca6ad547a3cebb727df2cf4f5dd': '0x34c19f6725a684b3e298c711ea6b32a0b6093e9a', // BOTCHA
 };
 
+// Manual metadata for campaigns not in Rally API
+const MANUAL_CAMPAIGN_META = {
+  '0x4653fa360f40073e56acffe31f552fba14adf8b4': {
+    title: 'zkSync Era Campaign',
+    creator: 'zkSync',
+  },
+};
+
 async function get(url, timeout = 20000) {
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
@@ -358,8 +366,8 @@ async function main() {
       address: camp.address,
       chain: camp._chain ?? 'base',
       ic: ic ?? null,
-      title: meta?.title ?? (camp._chain === 'zksync' ? `zkSync Campaign ${camp.address.slice(0,6)}…${camp.address.slice(-4)}` : `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`),
-      creator: meta?.displayCreator?.xUsername ?? null,
+      title: meta?.title ?? MANUAL_CAMPAIGN_META[camp.address]?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
+      creator: meta?.displayCreator?.xUsername ?? MANUAL_CAMPAIGN_META[camp.address]?.creator ?? null,
       participants: oc.participants,
       rallyUsers,
       revenueEth: oc.successEth,
