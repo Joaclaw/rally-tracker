@@ -152,14 +152,16 @@ export async function GET() {
       })
     );
 
-    // Add fee campaigns from cache that aren't in Rally (e.g., zkSync campaigns without IC)
+    // Add fee campaigns from cache that aren't already in the list
     if (cached?.feeCampaigns) {
-      const existingICs = new Set(campaigns.map(c => c.address.toLowerCase()));
+      const existingAddrs = new Set(campaigns.map(c => c.address.toLowerCase()));
       for (const fc of cached.feeCampaigns) {
-        // Only add if not already matched by IC and has no IC (pure on-chain campaign)
         const fcAddr = (fc.address ?? '').toLowerCase();
         const fcIC = (fc.ic ?? '').toLowerCase();
-        if (!fcIC && !existingICs.has(fcAddr) && fc.revenueUsd > 0) {
+        // Add if: has revenue AND (address not in list AND IC not in list)
+        const icInList = fcIC && existingAddrs.has(fcIC);
+        const addrInList = existingAddrs.has(fcAddr);
+        if (fc.revenueUsd > 0 && !addrInList && !icInList) {
           campaigns.push({
             title: fc.title,
             address: fc.address,
