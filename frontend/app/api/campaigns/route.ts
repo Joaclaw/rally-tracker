@@ -152,6 +152,35 @@ export async function GET() {
       })
     );
 
+    // Add fee campaigns from cache that aren't in Rally (e.g., zkSync campaigns)
+    if (cached?.feeCampaigns) {
+      const existingAddresses = new Set(campaigns.map(c => c.address.toLowerCase()));
+      for (const fc of cached.feeCampaigns) {
+        if (!existingAddresses.has(fc.address.toLowerCase()) && fc.revenueUsd > 0) {
+          campaigns.push({
+            title: fc.title,
+            address: fc.address,
+            creator: fc.creator ?? null,
+            prize: fc.prize ?? null,
+            users: fc.rallyUsers ?? 0,
+            submissions: fc.approved ?? 0,
+            approved: fc.approved ?? 0,
+            rejected: fc.rejected ?? 0,
+            avgScore: fc.avgScore ?? 0,
+            remainDays: fc.remainDays ?? 0,
+            revenueUsd: fc.revenueUsd,
+            participants: fc.participants,
+            failedTxs: fc.failedTxs ?? 0,
+            failedUsd: fc.failedUsd ?? 0,
+            ghostWallets: fc.ghostWallets ?? 0,
+            phase: 'beta', // Fee campaigns are beta
+            chainId: fc.chain === 'zksync' ? 324 : 8453,
+            symbol: fc.chain === 'zksync' ? 'zkSync' : 'Base',
+          });
+        }
+      }
+    }
+
     // Sort by revenue (fee campaigns first), then by users
     campaigns.sort((a, b) => (b.revenueUsd ?? -1) - (a.revenueUsd ?? -1) || b.users - a.users);
 

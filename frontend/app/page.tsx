@@ -197,8 +197,8 @@ export default function Home() {
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl">🔗</span>
-                  <h2 className="text-lg font-bold">Beta Campaigns</h2>
-                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Base • Fees</span>
+                  <h2 className="text-lg font-bold">Fee Campaigns</h2>
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Base + zkSync</span>
                 </div>
                 
                 {/* Desktop Table */}
@@ -220,7 +220,10 @@ export default function Home() {
                         <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                           <td className="px-4 py-3">
                             <p className="font-medium truncate max-w-[200px]">{camp.title}</p>
-                            <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
+                            <p className="text-xs text-gray-500">
+                              @{camp.creator ?? 'unknown'}
+                              {camp.chainId === 324 && <span className="ml-1 text-purple-400">[zkSync]</span>}
+                            </p>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
                           <td className="px-4 py-3 text-right font-mono">{camp.participants ?? '-'}</td>
