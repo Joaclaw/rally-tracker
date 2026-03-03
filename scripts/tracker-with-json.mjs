@@ -218,15 +218,8 @@ async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
       };
     }
     
-    let txs = [];
-    // zkSync: use etherscan-style API for better transaction data
-    if (chain.apiBaseEtherscan) {
-      const resp = await get(`${chain.apiBaseEtherscan}/api?module=account&action=txlist&address=${campAddr}&sort=desc`);
-      txs = resp.result ?? [];
-    } else {
-      // Base uses Blockscout /api/v2 style
-      txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
-    }
+    // All chains use Blockscout /api/v2 style (zkSync doesn't support limit param)
+    const txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, chain.name === 'zkSync Era' ? 100 : 20);
     
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
