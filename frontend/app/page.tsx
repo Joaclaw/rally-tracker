@@ -209,7 +209,7 @@ export default function Home() {
                         <th className="px-4 py-3 font-medium">Campaign</th>
                         <th className="px-3 py-3 font-medium text-center">Chain</th>
                         <th className="px-4 py-3 font-medium text-right">Revenue</th>
-                        <th className="px-4 py-3 font-medium text-right">Wallets</th>
+                        <th className="px-4 py-3 font-medium text-right">Users</th>
                         <th className="px-4 py-3 font-medium text-right">Subs</th>
                         <th className="px-4 py-3 font-medium text-right">Score</th>
                         <th className="px-4 py-3 font-medium text-right">Prize</th>
@@ -229,7 +229,7 @@ export default function Home() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
-                          <td className="px-4 py-3 text-right font-mono">{camp.participants ?? '-'}</td>
+                          <td className="px-4 py-3 text-right font-mono">{camp.users ?? camp.participants ?? '-'}</td>
                           <td className="px-4 py-3 text-right font-mono">
                             <span className="text-green-400">{camp.approved}</span>
                             {camp.rejected > 0 && <span className="text-red-400 ml-1">/{camp.rejected}</span>}
@@ -263,8 +263,8 @@ export default function Home() {
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="bg-gray-800/50 rounded-lg py-2">
-                          <p className="text-xs text-gray-500">Wallets</p>
-                          <p className="font-mono font-semibold">{camp.participants ?? '-'}</p>
+                          <p className="text-xs text-gray-500">Users</p>
+                          <p className="font-mono font-semibold">{camp.users ?? camp.participants ?? '-'}</p>
                         </div>
                         <div className="bg-gray-800/50 rounded-lg py-2">
                           <p className="text-xs text-gray-500">Subs</p>
