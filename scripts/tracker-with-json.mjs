@@ -11,10 +11,11 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = join(__dir, 'campaign-state.json');
 const JSON_OUTPUT = join(__dir, '..', 'frontend', 'public', 'data.json');
 
-// Two CampaignCreated event signatures
+// CampaignCreated event signatures (different versions)
 const CAMPAIGN_TOPICS = [
   '0xbb6e1a036316f8a54a4010c72f0adc5e7b714b15cff9045f280f3080b5fb5a60',
   '0x6056366dba45431fd6a8854ad9f2594942b02c4f2c3f6fbc329b3079b027b8b4',
+  '0x523e9e79067722e85f5f2937464d438207a342a0b7c55573df145756d4758cb2', // zkSync factory
 ];
 
 const CHAINS = {
@@ -27,6 +28,16 @@ const CHAINS = {
       '0x9dFF846FD91F5B8D45bFf9c6016483E3a7C72699',  // Factory 3 (new, IC not in event data)
     ],
     explorer: 'https://basescan.org',
+  },
+  zksync: {
+    name: 'zkSync Era',
+    apiBase: 'https://block-explorer-api.mainnet.zksync.io',
+    apiStyle: 'etherscan',  // Uses module=logs format instead of /api/v2
+    factories: [
+      '0x608a65b4503BFe3B32Ea356a47A86937345862cc',  // zkSync Factory 1
+      '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',  // zkSync Factory 2
+    ],
+    explorer: 'https://explorer.zksync.io',
   },
 };
 
@@ -95,10 +106,27 @@ async function discoverCampaigns(chain) {
   const campaignMap = new Map();
   for (const fac of chain.factories) {
     try {
-      const logs = await getAllPages(`${chain.apiBase}/addresses/${fac}/logs`, 3);
+      let logs = [];
+      if (chain.apiStyle === 'etherscan') {
+        // zkSync uses etherscan-style API
+        const resp = await get(`${chain.apiBase}/api?module=logs&action=getLogs&address=${fac}`);
+        logs = resp.result ?? [];
+      } else {
+        // Base uses blockscout /api/v2 style
+        logs = await getAllPages(`${chain.apiBase}/addresses/${fac}/logs`, 3);
+      }
       for (const log of logs) {
-        if (CAMPAIGN_TOPICS.includes(log.topics?.[0])) {
-          const addr = ('0x' + (log.topics[1] ?? '').slice(-40)).toLowerCase();
+        const topic0 = Array.isArray(log.topics) ? log.topics[0] : log.topics;
+        if (CAMPAIGN_TOPICS.includes(topic0)) {
+          // Campaign address from topic[1] or from data field
+          let addr = null;
+          const topics = Array.isArray(log.topics) ? log.topics : [log.topics];
+          if (topics[1]) {
+            addr = ('0x' + topics[1].slice(-40)).toLowerCase();
+          } else if (log.data && log.data.length >= 66) {
+            // Extract from data field (first word)
+            addr = ('0x' + log.data.slice(2, 66).slice(-40)).toLowerCase();
+          }
           if (addr && addr !== '0x' + '0'.repeat(40)) {
             // Extract IC from data field (third 32-byte word)
             let ic = null;
@@ -182,9 +210,17 @@ async function main() {
     if (ic) rallyByIC[ic] = c;
   }
 
-  const chain = CHAINS.base;
-  const onChainCampaigns = await discoverCampaigns(chain);
-  console.log(`📊 Found ${onChainCampaigns.length} on-chain campaigns`);
+  // Discover campaigns from all chains
+  let onChainCampaigns = [];
+  const chainStats = {};
+  for (const [chainId, chain] of Object.entries(CHAINS)) {
+    const camps = await discoverCampaigns(chain);
+    camps.forEach(c => c._chain = chainId); // Tag with chain
+    onChainCampaigns = onChainCampaigns.concat(camps);
+    chainStats[chainId] = camps.length;
+    console.log(`📊 Found ${camps.length} campaigns on ${chain.name}`);
+  }
+  console.log(`📊 Total: ${onChainCampaigns.length} on-chain campaigns`);
 
   const feeCampaigns = [];
   const newChainState = { campaigns: {} };
@@ -198,7 +234,8 @@ async function main() {
     // IC is extracted from factory event data, no need for separate lookup
     const ic = camp.ic;
     const meta = (ic && rallyByIC[ic]) ?? null;
-    const oc = await getCampaignOnChainStats(chain.apiBase, camp.address);
+    const campChain = CHAINS[camp._chain] ?? CHAINS.base;
+    const oc = await getCampaignOnChainStats(campChain.apiBase, camp.address);
 
     let rallyUsers = 0, avgScore = 0, approved = 0, rejected = 0;
     if (ic && meta) {
@@ -254,6 +291,7 @@ async function main() {
 
     feeCampaigns.push({
       address: camp.address,
+      chain: camp._chain ?? 'base',
       ic: ic ?? null,
       title: meta?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
       creator: meta?.displayCreator?.xUsername ?? null,
