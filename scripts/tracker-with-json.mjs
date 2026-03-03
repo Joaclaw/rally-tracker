@@ -32,16 +32,18 @@ const CHAINS = {
     ],
     explorer: 'https://basescan.org',
   },
-  zksync: {
-    name: 'zkSync Era',
-    apiBase: 'https://block-explorer-api.mainnet.zksync.io',
-    apiStyle: 'etherscan',  // Uses module=logs format instead of /api/v2
-    factories: [
-      '0x608a65b4503BFe3B32Ea356a47A86937345862cc',  // zkSync Factory 1
-      '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',  // zkSync Factory 2
-    ],
-    explorer: 'https://explorer.zksync.io',
-  },
+  // zkSync is used for storage/state, not fee collection
+  // Fees are collected on Base - don't double count
+  // zksync: {
+  //   name: 'zkSync Era',
+  //   apiBase: 'https://block-explorer-api.mainnet.zksync.io',
+  //   apiStyle: 'etherscan',
+  //   factories: [
+  //     '0x608a65b4503BFe3B32Ea356a47A86937345862cc',
+  //     '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',
+  //   ],
+  //   explorer: 'https://explorer.zksync.io',
+  // },
 };
 
 // Manual IC mapping for Factory 3 campaigns (IC not available in event data)
@@ -52,10 +54,7 @@ const FACTORY3_IC_MAP = {
 
 // Manual metadata for campaigns not in Rally API
 const MANUAL_CAMPAIGN_META = {
-  '0x4653fa360f40073e56acffe31f552fba14adf8b4': {
-    title: 'zkSync Era Campaign',
-    creator: 'zkSync',
-  },
+  // Add manual titles/creators for on-chain only campaigns
 };
 
 async function get(url, timeout = 20000) {
