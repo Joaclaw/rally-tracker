@@ -216,12 +216,15 @@ async function getCampaignOnChainStats(chain, campAddr) {
       }
       
       return {
-        participants: participants.size || (balance > 0n ? 1 : 0), // At least 1 if has balance
-        successTxs: intTxs.length,
+        participants: participants.size || (balance > 0n ? 1 : 0),
+        successTxs: intTxs.length, // Use as submission count for zkSync
         failedTxs: 0,
         successEth: Number(balance) / 1e18,
         failedEth: 0,
         firstTs,
+        // zkSync-specific: track unique senders and tx count
+        uniqueSenders: participants.size,
+        txCount: intTxs.length,
       };
     } else {
       // Base uses blockscout /api/v2 style
@@ -320,6 +323,10 @@ async function main() {
         try { return Number(BigInt(s.atemporalPoints)) / 1e18; } catch { return 0; }
       });
       avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    } else if (oc.successTxs > 0) {
+      // For campaigns not in Rally (e.g., zkSync), use on-chain tx count
+      approved = oc.successTxs;
+      rallyUsers = oc.participants;
     }
 
     const successUsd = oc.successEth * ethPrice;
