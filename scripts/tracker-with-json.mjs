@@ -32,18 +32,16 @@ const CHAINS = {
     ],
     explorer: 'https://basescan.org',
   },
-  // zkSync is used for storage/state, not fee collection
-  // Fees are collected on Base - don't double count
-  // zksync: {
-  //   name: 'zkSync Era',
-  //   apiBase: 'https://block-explorer-api.mainnet.zksync.io',
-  //   apiStyle: 'etherscan',
-  //   factories: [
-  //     '0x608a65b4503BFe3B32Ea356a47A86937345862cc',
-  //     '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',
-  //   ],
-  //   explorer: 'https://explorer.zksync.io',
-  // },
+  zksync: {
+    name: 'zkSync Era',
+    apiBase: 'https://zksync.blockscout.com/api/v2',  // Use Blockscout, not etherscan-style
+    factories: [
+      '0x608a65b4503BFe3B32Ea356a47A86937345862cc',
+      '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',
+    ],
+    explorer: 'https://explorer.zksync.io',
+    chainId: 324,
+  },
 };
 
 // Manual IC mapping for Factory 3 campaigns (IC not available in event data)
@@ -52,22 +50,7 @@ const FACTORY3_IC_MAP = {
   '0x580bb20ac1b32ca6ad547a3cebb727df2cf4f5dd': '0x34c19f6725a684b3e298c711ea6b32a0b6093e9a', // BOTCHA
 };
 
-// Manual metadata for campaigns not in Rally API
-const MANUAL_CAMPAIGN_META = {
-  '0x4653fa360f40073e56acffe31f552fba14adf8b4': {
-    title: 'zkSync Era Campaign',
-    creator: 'zkSync',
-  },
-};
-
-// Manual campaigns to track on Base (not discovered from factory logs)
-// Format: { address, ic } - address receives fees, ic is for Rally submissions
-const MANUAL_BASE_CAMPAIGNS = [
-  {
-    address: '0x4653fa360f40073e56acffe31f552fba14adf8b4',
-    ic: '0x30f07a5a536323a2cecd99fef84cf088dbaa1531',
-  },
-];
+// No manual campaigns - only show campaigns with Rally API metadata
 
 async function get(url, timeout = 20000) {
   const res = await fetch(url, {
@@ -199,17 +182,6 @@ async function discoverCampaigns(chain) {
     }
   }
   
-  // Add manual campaigns for this chain
-  if (chain.name === 'Base') {
-    for (const mc of MANUAL_BASE_CAMPAIGNS) {
-      const addr = mc.address.toLowerCase();
-      if (!campaignMap.has(addr)) {
-        campaignMap.set(addr, { address: addr, ic: mc.ic?.toLowerCase() ?? null });
-        console.log(`📌 Added manual campaign: ${addr.slice(0,10)}...`);
-      }
-    }
-  }
-  
   return [...campaignMap.values()];
 }
 
@@ -230,10 +202,8 @@ async function isContract(chain, addr) {
 
 async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
   try {
-    let txs = [];
-    
-    // For manual EOA campaigns on Base, use balance directly (can't trace incoming txs)
-    if (isManualEOA && chain.name === 'Base') {
+    // For manual EOA campaigns, use balance directly (can't trace incoming txs)
+    if (isManualEOA) {
       const resp = await get(`${chain.apiBase}/addresses/${campAddr}`);
       const balance = BigInt(resp.coin_balance ?? '0');
       return {
@@ -247,40 +217,8 @@ async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
       };
     }
     
-    if (chain.apiStyle === 'etherscan') {
-      // zkSync: txlist doesn't show incoming txs properly, use balance API + internal txs
-      const balResp = await get(`${chain.apiBase}/api?module=account&action=balance&address=${campAddr}`);
-      const balance = BigInt(balResp.result ?? '0');
-      
-      // Get internal transactions for participant count
-      const intResp = await get(`${chain.apiBase}/api?module=account&action=txlistinternal&address=${campAddr}`);
-      const intTxs = intResp.result ?? [];
-      const participants = new Set(intTxs.map(tx => (tx.from ?? '').toLowerCase()).filter(Boolean));
-      
-      // Get first timestamp from internal txs
-      let firstTs = null;
-      for (const tx of intTxs) {
-        if (tx.timeStamp) {
-          const ts = Number(tx.timeStamp) * 1000;
-          if (!firstTs || ts < firstTs) firstTs = ts;
-        }
-      }
-      
-      return {
-        participants: participants.size || (balance > 0n ? 1 : 0),
-        successTxs: intTxs.length, // Use as submission count for zkSync
-        failedTxs: 0,
-        successEth: Number(balance) / 1e18,
-        failedEth: 0,
-        firstTs,
-        // zkSync-specific: track unique senders and tx count
-        uniqueSenders: participants.size,
-        txCount: intTxs.length,
-      };
-    } else {
-      // Base uses blockscout /api/v2 style
-      txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
-    }
+    // All chains use Blockscout /api/v2 style
+    const txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
     
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
@@ -363,25 +301,14 @@ async function main() {
     const meta = (ic && rallyByIC[ic]) ?? null;
     const campChain = CHAINS[camp._chain] ?? CHAINS.base;
     
-    // Skip addresses that aren't contracts, unless they're manual campaigns (e.g., EOA fee recipients)
-    const isManualCampaign = MANUAL_BASE_CAMPAIGNS.some(mc => mc.address.toLowerCase() === camp.address.toLowerCase());
-    let isManualEOA = false;
-    if (!isManualCampaign) {
-      const isContractAddr = await isContract(campChain, camp.address);
-      if (!isContractAddr) {
-        console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
-        continue;
-      }
-    } else {
-      // Check if manual campaign is an EOA
-      const isContractAddr = await isContract(campChain, camp.address);
-      isManualEOA = !isContractAddr;
-      if (isManualEOA) {
-        console.log(`📍 Manual EOA campaign: ${camp.address.slice(0,10)}... (using balance)`);
-      }
+    // Skip addresses that aren't contracts
+    const isContractAddr = await isContract(campChain, camp.address);
+    if (!isContractAddr) {
+      console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
+      continue;
     }
     
-    const oc = await getCampaignOnChainStats(campChain, camp.address, isManualEOA);
+    const oc = await getCampaignOnChainStats(campChain, camp.address);
 
     let rallyUsers = 0, avgScore = 0, approved = 0, rejected = 0;
     if (ic && meta) {
@@ -443,8 +370,8 @@ async function main() {
       address: camp.address,
       chain: camp._chain ?? 'base',
       ic: ic ?? null,
-      title: meta?.title ?? MANUAL_CAMPAIGN_META[camp.address]?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
-      creator: meta?.displayCreator?.xUsername ?? MANUAL_CAMPAIGN_META[camp.address]?.creator ?? null,
+      title: meta?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
+      creator: meta?.displayCreator?.xUsername ?? null,
       participants: oc.participants,
       rallyUsers,
       revenueEth: oc.successEth,
@@ -468,11 +395,18 @@ async function main() {
     });
   }
 
+  // Filter to only show campaigns with Rally metadata (proper title)
+  // Campaigns without Rally metadata are test/old campaigns
+  const filteredFeeCampaigns = feeCampaigns.filter(c => {
+    // Keep only if has proper title (from Rally metadata)
+    return !c.title.startsWith('0x');
+  });
+
   // Sort by revenue
-  feeCampaigns.sort((a, b) => (b.revenueUsd ?? 0) - (a.revenueUsd ?? 0));
+  filteredFeeCampaigns.sort((a, b) => (b.revenueUsd ?? 0) - (a.revenueUsd ?? 0));
 
   // Free campaigns (not on-chain)
-  const handledICs = new Set(feeCampaigns.map(c => c.address));
+  const handledICs = new Set(filteredFeeCampaigns.map(c => c.address));
   const now = new Date();
   const freeCampaigns = allRallyCampaigns
     .filter(c => {
@@ -509,7 +443,7 @@ async function main() {
   const output = {
     timestamp: new Date().toISOString(),
     ethPrice,
-    feeCampaigns,
+    feeCampaigns: filteredFeeCampaigns,
     freeCampaigns,
     stats: {
       totalRevenue,
@@ -539,7 +473,7 @@ async function main() {
     console.log('---END---');
   }
 
-  console.log(`\n📊 Summary: ${feeCampaigns.length} fee campaigns | $${totalRevenue.toFixed(2)} revenue | ${totalParticipants} wallets`);
+  console.log(`\n📊 Summary: ${filteredFeeCampaigns.length} fee campaigns | $${totalRevenue.toFixed(2)} revenue | ${totalParticipants} wallets`);
 }
 
 main().catch(err => {
