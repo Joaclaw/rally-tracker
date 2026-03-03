@@ -126,7 +126,9 @@ export async function GET() {
         const remainDays = Math.max(0, (new Date(camp.endDate).getTime() - nowMs) / 86400000);
 
         // Determine if Beta (Base chain with fees) or Alpha (GenLayer/RLP)
-        const isBeta = camp.distributionContractChainId === 8453 && camp.token?.symbol !== 'RLP';
+        // Beta = has fee revenue (Base or zkSync with fees), Alpha = RLP only
+        const hasOnChainFees = cachedData?.revenueUsd > 0;
+        const isBeta = hasOnChainFees || (camp.distributionContractChainId === 8453 && camp.token?.symbol !== 'RLP');
         const phase = isBeta ? 'beta' : 'alpha';
 
         return {
