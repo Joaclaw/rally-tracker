@@ -158,27 +158,65 @@ async function discoverCampaigns(chain) {
 // IC is now extracted directly from factory CampaignCreated event data
 // No separate lookup needed
 
-async function getCampaignOnChainStats(apiBase, campAddr) {
+async function getCampaignOnChainStats(chain, campAddr) {
   try {
-    // No page limit - need ALL transactions to calculate accurate revenue
-    const txs = await getAllPages(`${apiBase}/addresses/${campAddr}/transactions`, 20);
+    let txs = [];
+    if (chain.apiStyle === 'etherscan') {
+      // zkSync: txlist doesn't show incoming txs properly, use balance API + internal txs
+      const balResp = await get(`${chain.apiBase}/api?module=account&action=balance&address=${campAddr}`);
+      const balance = BigInt(balResp.result ?? '0');
+      
+      // Get internal transactions for participant count
+      const intResp = await get(`${chain.apiBase}/api?module=account&action=txlistinternal&address=${campAddr}`);
+      const intTxs = intResp.result ?? [];
+      const participants = new Set(intTxs.map(tx => (tx.from ?? '').toLowerCase()).filter(Boolean));
+      
+      // Get first timestamp from internal txs
+      let firstTs = null;
+      for (const tx of intTxs) {
+        if (tx.timeStamp) {
+          const ts = Number(tx.timeStamp) * 1000;
+          if (!firstTs || ts < firstTs) firstTs = ts;
+        }
+      }
+      
+      return {
+        participants: participants.size || (balance > 0n ? 1 : 0), // At least 1 if has balance
+        successTxs: intTxs.length,
+        failedTxs: 0,
+        successEth: Number(balance) / 1e18,
+        failedEth: 0,
+        firstTs,
+      };
+    } else {
+      // Base uses blockscout /api/v2 style
+      txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
+    }
+    
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
 
     for (const tx of txs) {
-      const toAddr = (tx.to?.hash ?? '').toLowerCase();
-      const from = (tx.from?.hash ?? '').toLowerCase();
+      // Handle both API formats
+      const toAddr = (tx.to?.hash ?? tx.to ?? '').toLowerCase();
+      const from = (tx.from?.hash ?? tx.from ?? '').toLowerCase();
       const value = BigInt(tx.value ?? '0');
       if (value === 0n || toAddr !== campAddr.toLowerCase()) continue;
 
-      if (tx.status === 'error') {
+      const isError = tx.status === 'error' || tx.isError === '1' || tx.txreceipt_status === '0';
+      if (isError) {
         failedTxs++;
         failedWei += value;
       } else {
         participants.add(from);
         successWei += value;
         successTxs++;
-        const ts = tx.timestamp ? new Date(tx.timestamp).getTime() : null;
+        // Handle timestamp formats
+        const ts = tx.timestamp 
+          ? new Date(tx.timestamp).getTime() 
+          : tx.timeStamp 
+            ? Number(tx.timeStamp) * 1000 
+            : null;
         if (ts && (!firstTs || ts < firstTs)) firstTs = ts;
       }
     }
@@ -235,7 +273,7 @@ async function main() {
     const ic = camp.ic;
     const meta = (ic && rallyByIC[ic]) ?? null;
     const campChain = CHAINS[camp._chain] ?? CHAINS.base;
-    const oc = await getCampaignOnChainStats(campChain.apiBase, camp.address);
+    const oc = await getCampaignOnChainStats(campChain, camp.address);
 
     let rallyUsers = 0, avgScore = 0, approved = 0, rejected = 0;
     if (ic && meta) {
