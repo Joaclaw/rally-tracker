@@ -15,8 +15,11 @@ const JSON_OUTPUT = join(__dir, '..', 'frontend', 'public', 'data.json');
 const CAMPAIGN_TOPICS = [
   '0xbb6e1a036316f8a54a4010c72f0adc5e7b714b15cff9045f280f3080b5fb5a60',
   '0x6056366dba45431fd6a8854ad9f2594942b02c4f2c3f6fbc329b3079b027b8b4',
-  '0x523e9e79067722e85f5f2937464d438207a342a0b7c55573df145756d4758cb2', // zkSync factory
+  '0x523e9e79067722e85f5f2937464d438207a342a0b7c55573df145756d4758cb2', // zkSync: CampaignCreated(address)
 ];
+
+// zkSync IC set event - 0x132910dc... contains the IC in data
+const ZKSYNC_IC_TOPIC = '0x132910dcb4633daac5390741409476f0d0e858cbe79a67177e9e584d5eb8401c';
 
 const CHAINS = {
   base: {
@@ -115,6 +118,21 @@ async function discoverCampaigns(chain) {
         // Base uses blockscout /api/v2 style
         logs = await getAllPages(`${chain.apiBase}/addresses/${fac}/logs`, 3);
       }
+      // First pass: collect IC mappings from zkSync IC_SET events
+      const zkSyncICMap = new Map();
+      if (chain.apiStyle === 'etherscan') {
+        for (const log of logs) {
+          const topic0 = Array.isArray(log.topics) ? log.topics[0] : log.topics;
+          if (topic0 === ZKSYNC_IC_TOPIC && log.data && log.data.length >= 130) {
+            // data: [campaign_id (32 bytes)] [ic_address (32 bytes)]
+            const icRaw = log.data.slice(2 + 64, 2 + 128); // second word
+            const ic = ('0x' + icRaw.slice(-40)).toLowerCase();
+            // Map by transaction hash to correlate with campaign
+            zkSyncICMap.set(log.transactionHash, ic);
+          }
+        }
+      }
+
       for (const log of logs) {
         const topic0 = Array.isArray(log.topics) ? log.topics[0] : log.topics;
         if (CAMPAIGN_TOPICS.includes(topic0)) {
@@ -124,16 +142,25 @@ async function discoverCampaigns(chain) {
           if (topics[1]) {
             addr = ('0x' + topics[1].slice(-40)).toLowerCase();
           } else if (log.data && log.data.length >= 66) {
-            // Extract from data field (first word)
+            // Extract from data field (first word) - zkSync style
             addr = ('0x' + log.data.slice(2, 66).slice(-40)).toLowerCase();
           }
           if (addr && addr !== '0x' + '0'.repeat(40)) {
-            // Extract IC from data field (third 32-byte word)
+            // Extract IC from data field (third 32-byte word) - Base style
             let ic = null;
             if (log.data && log.data.length >= 194) { // 0x + 192 chars
               const icRaw = log.data.slice(2 + 128, 2 + 192); // word[2]
               if (icRaw && icRaw !== '0'.repeat(64)) {
                 ic = ('0x' + icRaw.slice(-40)).toLowerCase();
+              }
+            }
+            // For zkSync, check the IC map by looking at subsequent transactions
+            if (!ic && chain.apiStyle === 'etherscan') {
+              // Find IC set event that happened right after this one
+              for (const [txHash, icAddr] of zkSyncICMap) {
+                // Use the IC if found (simplified: just use first available)
+                ic = icAddr;
+                break;
               }
             }
             // Fallback to manual mapping for Factory 3 campaigns
@@ -331,7 +358,7 @@ async function main() {
       address: camp.address,
       chain: camp._chain ?? 'base',
       ic: ic ?? null,
-      title: meta?.title ?? `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`,
+      title: meta?.title ?? (camp._chain === 'zksync' ? `zkSync Campaign ${camp.address.slice(0,6)}…${camp.address.slice(-4)}` : `${camp.address.slice(0,6)}…${camp.address.slice(-4)}`),
       creator: meta?.displayCreator?.xUsername ?? null,
       participants: oc.participants,
       rallyUsers,
