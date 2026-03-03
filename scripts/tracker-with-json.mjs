@@ -34,7 +34,8 @@ const CHAINS = {
   },
   zksync: {
     name: 'zkSync Era',
-    apiBase: 'https://zksync.blockscout.com/api/v2',  // Use Blockscout, not etherscan-style
+    apiBase: 'https://zksync.blockscout.com/api/v2',
+    apiBaseEtherscan: 'https://block-explorer-api.mainnet.zksync.io',  // For txlist
     factories: [
       '0x608a65b4503BFe3B32Ea356a47A86937345862cc',
       '0x3F71378bA3B8134cfAE1De84F0b3E51fDB4fECa2',
@@ -217,8 +218,15 @@ async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
       };
     }
     
-    // All chains use Blockscout /api/v2 style
-    const txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
+    let txs = [];
+    // zkSync: use etherscan-style API for better transaction data
+    if (chain.apiBaseEtherscan) {
+      const resp = await get(`${chain.apiBaseEtherscan}/api?module=account&action=txlist&address=${campAddr}&sort=desc`);
+      txs = resp.result ?? [];
+    } else {
+      // Base uses Blockscout /api/v2 style
+      txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, 20);
+    }
     
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
@@ -285,6 +293,41 @@ async function main() {
     chainStats[chainId] = camps.length;
     console.log(`📊 Found ${camps.length} campaigns on ${chain.name}`);
   }
+  
+  // Add campaigns from Rally API that have distributionContractChainId (fee campaigns on other chains)
+  // Need to fetch individual campaign details to get distributionContractAddress
+  const discoveredAddrs = new Set(onChainCampaigns.map(c => c.address.toLowerCase()));
+  const discoveredICs = new Set(onChainCampaigns.map(c => (c.ic ?? '').toLowerCase()));
+  
+  for (const rally of allRallyCampaigns) {
+    const ic = (rally.intelligentContractAddress ?? '').toLowerCase();
+    const chainId = rally.distributionContractChainId;
+    const chainKey = chainId === 324 ? 'zksync' : chainId === 8453 ? 'base' : null;
+    
+    // Skip if already discovered or not on a tracked chain
+    if (!chainKey || discoveredICs.has(ic)) continue;
+    
+    // Fetch full campaign details to get distributionContractAddress
+    try {
+      const details = await get(`https://app.rally.fun/api/campaigns/${rally.intelligentContractAddress}`);
+      if (details.distributionContractAddress) {
+        const addr = details.distributionContractAddress.toLowerCase();
+        if (!discoveredAddrs.has(addr)) {
+          onChainCampaigns.push({
+            address: addr,
+            ic: ic,
+            _chain: chainKey,
+            _fromRallyAPI: true,
+          });
+          discoveredAddrs.add(addr);
+          console.log(`📍 Added from Rally API: ${rally.title.slice(0,30)}... (${chainKey})`);
+        }
+      }
+    } catch (e) {
+      // Skip campaigns we can't fetch details for
+    }
+  }
+  
   console.log(`📊 Total: ${onChainCampaigns.length} on-chain campaigns`);
 
   const feeCampaigns = [];
@@ -301,11 +344,13 @@ async function main() {
     const meta = (ic && rallyByIC[ic]) ?? null;
     const campChain = CHAINS[camp._chain] ?? CHAINS.base;
     
-    // Skip addresses that aren't contracts
-    const isContractAddr = await isContract(campChain, camp.address);
-    if (!isContractAddr) {
-      console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
-      continue;
+    // Skip addresses that aren't contracts (unless from Rally API - those are valid fee recipients)
+    if (!camp._fromRallyAPI) {
+      const isContractAddr = await isContract(campChain, camp.address);
+      if (!isContractAddr) {
+        console.log(`⏭️ Skipping ${camp.address.slice(0,10)}... (not a contract)`);
+        continue;
+      }
     }
     
     const oc = await getCampaignOnChainStats(campChain, camp.address);
