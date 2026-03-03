@@ -197,8 +197,8 @@ export default function Home() {
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl">🔗</span>
-                  <h2 className="text-lg font-bold">Fee Campaigns</h2>
-                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Base + zkSync</span>
+                  <h2 className="text-lg font-bold">Beta Campaigns</h2>
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Fees</span>
                 </div>
                 
                 {/* Desktop Table */}
@@ -207,6 +207,7 @@ export default function Home() {
                     <thead>
                       <tr className="text-left text-gray-400 border-b border-gray-800 bg-gray-900/50">
                         <th className="px-4 py-3 font-medium">Campaign</th>
+                        <th className="px-3 py-3 font-medium text-center">Chain</th>
                         <th className="px-4 py-3 font-medium text-right">Revenue</th>
                         <th className="px-4 py-3 font-medium text-right">Wallets</th>
                         <th className="px-4 py-3 font-medium text-right">Subs</th>
@@ -220,10 +221,12 @@ export default function Home() {
                         <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                           <td className="px-4 py-3">
                             <p className="font-medium truncate max-w-[200px]">{camp.title}</p>
-                            <p className="text-xs text-gray-500">
-                              @{camp.creator ?? 'unknown'}
-                              {camp.chainId === 324 && <span className="ml-1 text-purple-400">[zkSync]</span>}
-                            </p>
+                            <p className="text-xs text-gray-500">@{camp.creator ?? 'unknown'}</p>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`text-xs px-2 py-0.5 rounded ${camp.chainId === 324 ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                              {camp.chainId === 324 ? 'zkSync' : 'Base'}
+                            </span>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-green-400">{formatUsd(camp.revenueUsd)}</td>
                           <td className="px-4 py-3 text-right font-mono">{camp.participants ?? '-'}</td>

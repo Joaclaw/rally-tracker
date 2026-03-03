@@ -152,11 +152,14 @@ export async function GET() {
       })
     );
 
-    // Add fee campaigns from cache that aren't in Rally (e.g., zkSync campaigns)
+    // Add fee campaigns from cache that aren't in Rally (e.g., zkSync campaigns without IC)
     if (cached?.feeCampaigns) {
-      const existingAddresses = new Set(campaigns.map(c => c.address.toLowerCase()));
+      const existingICs = new Set(campaigns.map(c => c.address.toLowerCase()));
       for (const fc of cached.feeCampaigns) {
-        if (!existingAddresses.has(fc.address.toLowerCase()) && fc.revenueUsd > 0) {
+        // Only add if not already matched by IC and has no IC (pure on-chain campaign)
+        const fcAddr = (fc.address ?? '').toLowerCase();
+        const fcIC = (fc.ic ?? '').toLowerCase();
+        if (!fcIC && !existingICs.has(fcAddr) && fc.revenueUsd > 0) {
           campaigns.push({
             title: fc.title,
             address: fc.address,
@@ -173,7 +176,7 @@ export async function GET() {
             failedTxs: fc.failedTxs ?? 0,
             failedUsd: fc.failedUsd ?? 0,
             ghostWallets: fc.ghostWallets ?? 0,
-            phase: 'beta', // Fee campaigns are beta
+            phase: 'beta',
             chainId: fc.chain === 'zksync' ? 324 : 8453,
             symbol: fc.chain === 'zksync' ? 'zkSync' : 'Base',
           });
