@@ -38,6 +38,8 @@ interface Data {
     totalFailedTxs: number;
     totalFailedUsd: number;
     ghostWallets: number;
+    subsWithoutPayment: number;
+    potentialLostRevenue: number;
     arr: number | null;
     dailyRate: number | null;
     ageDays: number | null;
@@ -175,8 +177,11 @@ export default function Home() {
         </div>
 
         {/* Alerts */}
-        {((data?.stats.ghostWallets ?? 0) > 0 || (data?.stats.totalFailedTxs ?? 0) > 0) && (
+        {((data?.stats.ghostWallets ?? 0) > 0 || (data?.stats.totalFailedTxs ?? 0) > 0 || (data?.stats.subsWithoutPayment ?? 0) > 0) && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6 flex flex-wrap gap-3 text-sm">
+            {(data?.stats.subsWithoutPayment ?? 0) > 0 && (
+              <span className="text-orange-400">⚠️ {data?.stats.subsWithoutPayment} subs without on-chain payment — {formatUsd(data?.stats.potentialLostRevenue)} potential lost</span>
+            )}
             {(data?.stats.ghostWallets ?? 0) > 0 && (
               <span className="text-red-400">⚠️ {data?.stats.ghostWallets} ghost wallets (paid, not in Rally)</span>
             )}

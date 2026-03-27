@@ -329,6 +329,7 @@ async function main() {
   const newChainState = { campaigns: {} };
   let totalRevenue = 0, totalParticipants = 0, totalRallyUsers = 0;
   let totalFailedTxs = 0, totalFailedUsd = 0, ghostWallets = 0, unpaidUsers = 0;
+  let totalApproved = 0, totalSuccessTxs = 0; // For submission-payment gap tracking
   let earliestTs = null;
   const DAY_MS = 86400000;
   const nowMs = Date.now();
@@ -406,6 +407,11 @@ async function main() {
     const unpaid = rallyUsers - oc.participants;
     if (ghost > 0) ghostWallets += ghost;
     if (unpaid > 0) unpaidUsers += unpaid;
+
+    // Submission-payment gap: Rally submissions without on-chain payment
+    const subsWithoutPayment = Math.max(0, approved - oc.successTxs);
+    totalApproved += approved;
+    totalSuccessTxs += oc.successTxs;
     if (oc.firstTs && (!earliestTs || oc.firstTs < earliestTs)) earliestTs = oc.firstTs;
 
     newChainState.campaigns[camp.address] = { participants: oc.participants, successEth: oc.successEth };
@@ -431,6 +437,8 @@ async function main() {
       isEnded,
       ghostWallets: ghost > 0 ? ghost : 0,
       unpaidUsers: unpaid > 0 ? unpaid : 0,
+      successTxs: oc.successTxs,
+      subsWithoutPayment,
       // Projections
       dailyRate,
       projectedRevenue,
@@ -498,6 +506,11 @@ async function main() {
       totalFailedUsd,
       ghostWallets,
       unpaidUsers,
+      // Submission-payment gap (Rally subs without on-chain payment)
+      totalApproved,
+      totalSuccessTxs,
+      subsWithoutPayment: Math.max(0, totalApproved - totalSuccessTxs),
+      potentialLostRevenue: Math.max(0, totalApproved - totalSuccessTxs) * 1.20, // ~$1.20 per sub
       onChainCampaigns: onChainCampaigns.length,
       rallyCampaigns: allRallyCampaigns.length,
       // ARR metrics
