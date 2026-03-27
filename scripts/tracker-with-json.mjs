@@ -220,7 +220,8 @@ async function getCampaignOnChainStats(chain, campAddr, isManualEOA = false) {
     }
     
     // All chains use Blockscout /api/v2 style (zkSync doesn't support limit param)
-    const txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, chain.name === 'zkSync Era' ? 100 : 20);
+    // Increased maxPages to 40 to handle high-activity campaigns (2000 tx limit)
+    const txs = await getAllPages(`${chain.apiBase}/addresses/${campAddr}/transactions`, chain.name === 'zkSync Era' ? 100 : 40);
     
     const participants = new Set();
     let successWei = 0n, failedWei = 0n, successTxs = 0, failedTxs = 0, firstTs = null;
@@ -327,7 +328,7 @@ async function main() {
   const feeCampaigns = [];
   const newChainState = { campaigns: {} };
   let totalRevenue = 0, totalParticipants = 0, totalRallyUsers = 0;
-  let totalFailedTxs = 0, totalFailedUsd = 0, ghostWallets = 0;
+  let totalFailedTxs = 0, totalFailedUsd = 0, ghostWallets = 0, unpaidUsers = 0;
   let earliestTs = null;
   const DAY_MS = 86400000;
   const nowMs = Date.now();
@@ -399,8 +400,12 @@ async function main() {
     totalRallyUsers += rallyUsers;
     totalFailedTxs += oc.failedTxs;
     totalFailedUsd += failedUsd;
+    // Ghost wallets = paid on-chain but not in Rally API
+    // Unpaid users = in Rally API but no on-chain payment detected
     const ghost = oc.participants - rallyUsers;
+    const unpaid = rallyUsers - oc.participants;
     if (ghost > 0) ghostWallets += ghost;
+    if (unpaid > 0) unpaidUsers += unpaid;
     if (oc.firstTs && (!earliestTs || oc.firstTs < earliestTs)) earliestTs = oc.firstTs;
 
     newChainState.campaigns[camp.address] = { participants: oc.participants, successEth: oc.successEth };
@@ -425,6 +430,7 @@ async function main() {
       remainDays: remainDays != null ? Math.ceil(remainDays) : null,
       isEnded,
       ghostWallets: ghost > 0 ? ghost : 0,
+      unpaidUsers: unpaid > 0 ? unpaid : 0,
       // Projections
       dailyRate,
       projectedRevenue,
@@ -491,6 +497,7 @@ async function main() {
       totalFailedTxs,
       totalFailedUsd,
       ghostWallets,
+      unpaidUsers,
       onChainCampaigns: onChainCampaigns.length,
       rallyCampaigns: allRallyCampaigns.length,
       // ARR metrics
