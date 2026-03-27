@@ -49,6 +49,7 @@ const CHAINS = {
 // Format: campaignAddress -> IC address
 const FACTORY3_IC_MAP = {
   '0x580bb20ac1b32ca6ad547a3cebb727df2cf4f5dd': '0x34c19f6725a684b3e298c711ea6b32a0b6093e9a', // BOTCHA
+  '0xc8d22bd966dafce700c8b38815deab767c37ebc1': '0x5b303819b946f464d275b25552f8c9fd3f7029d8', // Grvt Momentum
 };
 
 // No manual campaigns - only show campaigns with Rally API metadata
@@ -444,7 +445,7 @@ async function main() {
   filteredFeeCampaigns.sort((a, b) => (b.revenueUsd ?? 0) - (a.revenueUsd ?? 0));
 
   // Free campaigns (not on-chain)
-  const handledICs = new Set(filteredFeeCampaigns.map(c => c.address));
+  const handledICs = new Set(filteredFeeCampaigns.map(c => c.ic).filter(Boolean));
   const now = new Date();
   const freeCampaigns = allRallyCampaigns
     .filter(c => {
